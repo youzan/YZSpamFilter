@@ -8,49 +8,66 @@
 
 -------------------
 
-[TOC]
-
 ## 依赖
 
-使用前需安装jieba分词组件
-命令:  **sudo pip install jieba**
-
+使用前需安装必要的python库，包括jieba，flask
+```
+pip install -r requirements.txt
+```
 ## 使用方法
 
-1. 准备两份垃圾信息的文档，一份为正常的信息，一份为垃圾信息，每一行为一条数据，如本项目内的ham.txt与spam.txt
-注: 正负样本数量最好各大于1000
+1. 准备两份垃圾信息的文档，一份为正常的信息，一份为垃圾信息，每一行为一条数据，如本项目内的`ham.txt`与`spam.txt`
 
-2. 运行数据准备程序createTrainAndTestData.py，生成训练与测试数据
-   示例: **python createTrainAndTestData.py ham.txt spam.txt 0.5 stopwords_common.txt**
-   以下为参数说明：
-   ham.txt  --- 正常信息
-   spam.txt --- 垃圾信息
-   0.5 --- 用于训练的信息占所有信息的比例，剩余的为测试信息（非必须参数，默认为0.5）
-   stopwords_common.txt --- 停止词列表，stopwords_common.txt为较常用停止词，stopwords.txt较全（非必须参数，默认为stopwords_common.txt ）
-   运行完毕后，会生成trainPos.txt、trainNeg.txt、testPos.txt、testNeg.txt,分别对应训练正样本、训练负样本、测试正样本、测试负样本
+    > 注: 正负样本数量最好各大于1000
 
+2. 运行数据准备程序`createTrainAndTestData.py`，生成训练与测试数据
+   示例: `python createTrainAndTestData.py`
+   运行完毕后，会生成`trainPos.txt`、`trainNeg.txt`、`testPos.txt`、`testNeg.txt`,分别对应训练正样本、训练负样本、测试正样本、测试负样本
 
-3. 运行训练测试程序filter.py
-   示例: **python filter.py**
+3. 运行训练测试程序`filter.py`
+   示例: `python filter.py`
    该程序首先会利用上步得到的训练样本训练出垃圾信息过滤的模型，然后对上步得到的测试样本进行测试并打印测试结果
    其中tar为正确接受率，及正样本测试正确率，trr为错误拒绝率，即负样本测试正确率，accuracy为整体正确率
    运行一次后，程序将模型保存为pickle文件，下次会直接从该文件中读取模型
 
-   **特别提示: filter.py程序最后的single judge为调用示例**
+    > 特别提示: filter.py程序最后的single judge为调用示例
 
+4. 运行 restful api 主程序`mainApi.py`
+   示例: `python mainApi.py`
+   该程序首先会调用`filterApi.py`程序，为垃圾信息过滤提供网络接口服务，采用默认的网络接口时，会开启 resuful api 服务，此时调用示例为：
+   ```
+   curl 'http://0.0.0.0:5060/api/spamfilter?query=赚钱test宝妈tes日赚学生兼职*.@打字员'
+   ```
+   当`query`的信息为垃圾信息时，返回`{"spam": "True"}`；反之，返回`{"spam": "False"}`
+5. 考虑到实际使用过程中，需要模型进行自动更新，因此`autorefresh.py`为垃圾信息的自动更新示例
+   示例: `python autorefresh.py`
+    1. 当模型错误的将某个正常信息当做垃圾信息时，对于大多数垃圾信息过滤服务而言，问题较为严重，因此，示例中分两步
+    ```
+    f.Algorithm.discover(FalseRejectstr, True) --- 将该信息从垃圾信息的统计分布取出
+    f.Algorithm.cover(FalseRejectstr, False) --- 将该信息加入正常信息的统计分布
+    ```
+    2. 当模型错误的将某个垃圾信息当做正常信时，问题严重性较低，因此，只做一步
+    ```
+    f.Algorithm.cover(FalseAcceptstr, True) --- 将该信息加入垃圾信息的统计分布
+    ```
 
-4. 考虑到实际使用过程中，需要模型进行自动更新，因此autorefresh.py为垃圾信息的自动更新示例
-   示例: **python autorefresh.py**
-   1）当模型错误的将某个正常信息当做垃圾信息时，对于大多数垃圾信息过滤服务而言，问题较为严重，因此，示例中分两步
-   f.Algorithm.discover(FalseRejectstr, True) --- 将该信息从垃圾信息的统计分布取出
-   f.Algorithm.cover(FalseRejectstr, False) --- 将该信息加入正常信息的统计分布
-   2）当模型错误的将某个垃圾信息当做正常信时，问题严重性较低，因此，只做一步
-   f.Algorithm.cover(FalseAcceptstr, True) --- 将该信息加入垃圾信息的统计分布
-   注: True表示信息为垃圾信息，False则相反
+    > 注: True表示信息为垃圾信息，False则相反
+    > 实际使用过程中，上述两个步骤可根据实际需求自由修改，开发人员可设计程序与数据库对接，实现模型的自动更新
 
-  **实际使用过程中，上述两个步骤可根据实际需求自由修改，开发人员可设计程序与数据库对接，实现模型的自动更新**
-   
+6. `config.py`中存放了若干程序参数，使用过程中可自由配置，各参数说明如下：
+    ```
+    'bind_addr': '0.0.0.0',   #服务绑定地址
+    'bind_port': 5080,        #服务绑定端口
+    'threshold': 83,                          #过滤阈值
+    'stopwords_file':'stopwords_common.txt',  #停止词文件
+    'classify_model':'filter.pickle',         #过滤模型
+    'ham_file':'ham.txt',                     #正常信息
+    'spam_file':'spam.txt',                   #垃圾信息
+    'train_rate':0.5                          #正常、垃圾信息中用于训练的信息比例（范围0到1）
+    ```
+
 ## 效果统计
+
 1. 测试效果:  tar = 99.49%,  trr  = 93.48%,  accuracy = 97.61%
 2. 线上效果:  经有赞线上效果统计，10.10 - 10.16日一个星期内，对于有赞bbs后台拦截统计，共拦截到垃圾帖子289，其中误拦截为9，漏拦截为43
 
