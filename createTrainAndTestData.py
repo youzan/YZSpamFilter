@@ -4,7 +4,8 @@ import os
 import sys
 import random
 import jieba
-from utils import ClearAndSegment
+from utils import ClearAndSegment, u
+from config import configs
 
 trainPos = "trainPos.txt"
 trainNeg = "trainNeg.txt"
@@ -34,6 +35,7 @@ def createTrainAndTestData(strpos, strneg, trainRate, stopWords):
     stops = []
     for s in totalStop:
         s = s.strip()
+        s = u(s)
         stops.append(s)
 
     index = 0
@@ -43,6 +45,7 @@ def createTrainAndTestData(strpos, strneg, trainRate, stopWords):
         if str == '':
             continue
         #print str
+        str = u(str)
         str = ClearAndSegment(str)
         str = [word for word in str if word not in stops]
         str = '/'.join(str)
@@ -64,6 +67,7 @@ def createTrainAndTestData(strpos, strneg, trainRate, stopWords):
         str = str.strip()
         if str == '':
             continue
+        str = u(str)
         str = ClearAndSegment(str)
         str = [word for word in str if word not in stops]
         str = '/'.join(str)
@@ -108,34 +112,45 @@ def createTrainAndTestData(strpos, strneg, trainRate, stopWords):
 if __name__ == "__main__":
 
     """
-    usage: python createTrainAndTestData.py ham.txt spam.txt 0.5 stopwords.txt
+
+    usage: python createTrainAndTestData.py
 
     """
-
     reload(sys)
     sys.setdefaultencoding('utf-8')
-    if len(sys.argv) < 3:
-        print "输入的参数过少"
-        sys.exit()
-    strpos = sys.argv[1]
-    strneg = sys.argv[2]
+
+    strpos = configs['ham_file']
+    strneg = configs['spam_file']
+
+    if configs.has_key('train_rate'):
+        trainRate = configs['train_rate']
+        if trainRate == 0:
+            trainRate = 0.5
+            print "Warning: train rate should large than 0, set default train rate 0.5"
+    else:
+        trainRate = 0.5
+        print "Warning: no train_rate in conifigs, set default train rate 0.5"
+
+    stopwords_file = configs['stopwords_file']
 
     if not os.path.exists(strpos):
         print "ERROR: need ham file"
-        sys.exit(-1)
+        exit(-1)
 
     if not os.path.exists(strneg):
         print "ERROR: need spam file"
-        sys.exit(-1)
+        exit(-1)
 
-    trainRate = 0.5
-    stopWords = 'stopwords_common.txt'
+    if not os.path.exists(stopwords_file):
+        print "ERROR: need stopwords file"
+        exit(-1)
 
-    if len(sys.argv) > 3:
-        trainRate = float(sys.argv[3])
+    print "ham_file is %s" % (strpos)
+    print "spam_file is %s" % (strneg)
+    print "train_rate is %f" % (trainRate)
+    print "stopwords_file is %s" % (stopwords_file)
 
-    if len(sys.argv) > 4:
-        stopWords = sys.argv[4]
+    createTrainAndTestData(strpos, strneg, trainRate, stopwords_file)
 
-    createTrainAndTestData(strpos, strneg, trainRate, stopWords)
+    print 'Finish creating train and test Data'
      
