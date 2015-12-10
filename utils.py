@@ -37,6 +37,14 @@ def ClearAndSegment(mes):
         return seg_list
     return seg_list
 
+def u(x):
+    """
+      translate str to unicode
+    """
+    if not isinstance(x, unicode):
+        return x.decode('utf-8')
+    return x
+
 if __name__ == '__main__':
 
     liststr = ClearAndSegment(u"赚钱test宝妈tes日赚学生兼职*.@打字员")
