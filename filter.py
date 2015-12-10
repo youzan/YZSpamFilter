@@ -1,10 +1,12 @@
-#coding=utf-8
+# -*- coding: utf-8 -*-
 import os
 import sys
 import pickle
 
 from classifier import Algorithm
-from utils import ClearAndSegment
+from utils import ClearAndSegment, u
+from config import configs
+
 trainPos = "trainPos.txt"
 trainNeg = "trainNeg.txt"
 testPos = "testPos.txt"
@@ -13,7 +15,7 @@ testNeg = "testNeg.txt"
 posScore = "posScore.txt"
 negScore = "negScore.txt"
 
-classifyname = "filter.pickle"
+
 
 class filter:
 
@@ -132,16 +134,23 @@ class filter:
 
 if __name__ == '__main__':
 
-    threshold = 83
+    """
+
+    usage: python filter.py
+
+    """
 
     reload(sys)
     sys.setdefaultencoding('utf-8')
 
+    classify_model = configs['classify_model']
+    threshold = configs['threshold']
+
     ##############################
     # 1.train or load model
     ##############################
-    if os.path.exists(classifyname):
-        with open(classifyname, 'rb') as file:
+    if os.path.exists(classify_model):
+        with open(classify_model, 'rb') as file:
             f = filter(Algorithm)
             t = pickle.load(file)
             f.Algorithm.loadmodel(t)
@@ -150,7 +159,7 @@ if __name__ == '__main__':
     else:
         f = filter(Algorithm)
         f.train()
-        with open(classifyname, 'wb') as file:
+        with open(classify_model, 'wb') as file:
             t = f.Algorithm.getmodel()
             pickle.dump(t, file)
             file.close()
@@ -166,8 +175,8 @@ if __name__ == '__main__':
     ##############################
     # 3.single judge
     ##############################
-    stopWords = 'stopwords_common.txt'
-    fstop = open(stopWords)
+    stopwords_file = configs['stopwords_file']
+    fstop = open(stopwords_file)
     totalStop = fstop.readlines()
     fstop.close()
     stops = []
@@ -175,13 +184,14 @@ if __name__ == '__main__':
         s = s.strip()
         stops.append(s)
 
-    str = '赚钱test宝妈tes日赚学生兼职*.@打字员'
-    print str
-    liststr = ClearAndSegment(str)
-    #print liststr
-    liststr = [word.encode('UTF-8') for word in liststr if word not in stops]
+    query = '赚钱test宝妈tes日赚学生兼职*.@打字员'
+    query = u(query)
+    print query
+    listquery = ClearAndSegment(query)
+    #print listquery
+    listquery = [word.encode('UTF-8') for word in listquery if word not in stops]
 
-    if f.singlejudge(liststr) > threshold:
+    if f.singlejudge(listquery) > threshold:
         print 'WARNING: this is a spam message'
     else:
         print 'this message is harmless'
