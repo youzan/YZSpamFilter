@@ -1,2 +1,3 @@
 jieba
-flask
+Flask
+flask-restful==0.2.5
